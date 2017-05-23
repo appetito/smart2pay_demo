@@ -52,8 +52,8 @@ $(document).ready(function(){
     console.log("FORM DATA", data);
     $.post($(this).attr("action"), data, function(resp) {
       // body...
-        console.log("RESPONSE", resp, resp.Payment.RedirectURL);
-        renderGlobalPay(resp.Payment.RedirectURL, "globalPayContainer");
+        console.log("RESPONSE", resp, resp.RedirectURL);
+        renderGlobalPay(resp.RedirectURL, "globalPayContainer");
     });
     return false;
   });
