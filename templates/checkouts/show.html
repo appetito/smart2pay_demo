@@ -19,19 +19,25 @@
         <button class="button" type="submit"><span>Buy one more Thing!</span></button>
       </form>
  -->
-      <form id="payment-form" method="post" action="/refund/">
+ <div>
+      <h3>Refund  This Transaction</h3>   
+      <form id="payment-form" method="post" action="/refund">
           <input name="tx_id" type="hidden" value="{{ payment['MerchantTransactionID'] }}">
           <input name="payment_id" type="hidden" value="{{ payment['ID'] }}">
 
         <button class="button" type="submit"><span>Refund</span></button>
       </form>
+ </div>
 
+ <div>
+      <h3>Partial Refund This Transaction</h3>   
       <form id="payment-form" method="post" action="/refund/partial">
           <input name="tx_id" type="hidden" value="{{ payment['MerchantTransactionID'] }}">
           <input name="payment_id" type="hidden" value="{{ payment['ID'] }}">
         <input type="text" name="amount" placeholder="Amount to Refund">
         <button class="button" type="submit"><span>Partial Refund</span></button>
       </form>
+ </div>
 
       </div>
       {% endif %}

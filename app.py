@@ -38,7 +38,7 @@ def show_checkout(status, tx_id):
             'header': 'Sweet Success!',
             'icon': 'success',
             'message': ('Your test transaction has been successfully processed.'
-                        'See the Braintree API response and try again.')
+                        'See the API response and try again.')
         }
     else:
         result = {
