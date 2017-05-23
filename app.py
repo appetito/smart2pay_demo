@@ -200,7 +200,7 @@ def refund_partial():
 
 
 @app.route('/refund', methods=['POST'])
-def refund_partial():
+def refund():
     # result = braintree.Transaction.refund(request.form["tx_id"])
     url = API_URL + '/payments/{}'.format(request.form["payment_id"])
     resp = requests.get(url, auth=auth_pair)
