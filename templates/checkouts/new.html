@@ -40,10 +40,23 @@
       <button class="button" type="submit"><span>Checkout</span></button>
     </form>
 
+    <div id="globalPayContainer" style="height:auto;"></div>
+
   </div>
 </div>
 
 <script>
-
+$(document).ready(function(){
+  $("#payment-form").submit(function(){
+    var data = $(this).serialize();
+    console.log("FORM DATA", data);
+    $.post($(this).attr("action"), data, function(resp) {
+      // body...
+        console.log("RESPONSE", resp, resp.Payment.RedirectURL);
+        renderGlobalPay(resp.Payment.RedirectURL, "globalPayContainer");
+    });
+    return false;
+  });
+});
 </script>
 {% endblock %}
