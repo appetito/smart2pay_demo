@@ -143,6 +143,8 @@ def create_checkout():
         }
     }
     result = requests.post(API_URL + '/payments', json=tx_data, auth=auth_pair)
+    print("RESP:", result)
+    print("RESP:", result.status_code)
     payment = result.json()["Payment"]
     # import ipdb; ipdb.set_trace();
     session["payment_id"] = payment["ID"]
