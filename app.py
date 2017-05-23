@@ -14,7 +14,7 @@ app.secret_key = os.environ.get('APP_SECRET_KEY')
 
 
 API_URL = "https://paytest.smart2pay.com/v1"
-auth_pair = ("33500", "fkSVyWtDtrQW05pS6VZlQytwoTzKiR4xWClOE5A9vASYWB9qJK")
+auth_pair = (os.environ.get('SITE_ID'), os.environ.get('API_KEY'))
 
 
 @app.route('/', methods=['GET'])
