@@ -54,6 +54,8 @@ $(document).ready(function(){
       // body...
         console.log("RESPONSE", resp, resp.RedirectURL);
         renderGlobalPay(resp.RedirectURL, "globalPayContainer");
+        // var iframe = $('<iframe src="' + resp.RedirectURL + '" style="height:600px; width: 100%"/>');
+        // $("#globalPayContainer").append(iframe);
     });
     return false;
   });

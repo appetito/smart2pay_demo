@@ -137,6 +137,7 @@ def create_checkout():
             "MethodID": 69,
             "ReturnURL": "https://smart2pay-demo-db2.herokuapp.com/redirect",
             "TokenLifetime": 0,
+            "RedirectInIframe": 1,
             "Customer": {
                 "Email": "youremail@email.com"
             }
