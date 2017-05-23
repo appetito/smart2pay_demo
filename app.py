@@ -28,7 +28,7 @@ def new_checkout():
 
 
 @app.route('/checkouts/<status>/<tx_id>', methods=['GET'])
-def show_checkout(transaction_id):
+def show_checkout(status, tx_id):
     url = API_URL + '/payments/{}'.format(session["payment_id"])
     resp = requests.get(url, auth=auth_pair)
     payment = resp.json()["Payment"]
