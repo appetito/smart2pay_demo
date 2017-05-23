@@ -153,7 +153,7 @@ def create_checkout():
 
 
 @app.route('/redirect', methods=['POST', 'GET'])
-def redirect():
+def redirect_view():
     print("** REDIR METH**", request.method)
     print("** REDIR GET**", request.args)
     print("** REDIR POST/PUT**", request.form)
