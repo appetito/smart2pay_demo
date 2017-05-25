@@ -14,41 +14,9 @@ app.secret_key = os.environ.get('APP_SECRET_KEY')
 
 
 API_URL = "https://paytest.smart2pay.com/v1"
+CARD_API_URL = "https://securetest.smart2pay.com/v1"
 auth_pair = (os.environ.get('SITE_ID'), os.environ.get('API_KEY'))
 
-
-@app.route('/', methods=['GET'])
-def index():
-    return redirect(url_for('new_checkout'))
-
-
-@app.route('/checkouts/new', methods=['GET'])
-def new_checkout():
-    return render_template('checkouts/new.html')
-
-
-@app.route('/checkouts/<status>/<tx_id>', methods=['GET'])
-def show_checkout(status, tx_id):
-    url = API_URL + '/payments/{}'.format(session["payment_id"])
-    resp = requests.get(url, auth=auth_pair)
-    payment = resp.json()["Payment"]
-    result = {}
-    if payment["Status"]["ID"] == 2:
-        result = {
-            'header': 'Sweet Success!',
-            'icon': 'success',
-            'message': ('Your test transaction has been successfully processed.'
-                        'See the API response and try again.')
-        }
-    else:
-        result = {
-            'header': 'Transaction Failed',
-            'icon': 'fail',
-            'message': ('Your test transaction has a status of {}: {}. See'
-                        ' API response and try again.').format(payment["Status"]["Info"], payment["Status"]["Reasons"])
-        }
-
-    return render_template('checkouts/show.html', payment=payment, result=result)
 
 """
 {
@@ -123,6 +91,41 @@ def show_checkout(status, tx_id):
 """
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return redirect(url_for('new_checkout'))
+
+
+@app.route('/checkouts/new', methods=['GET'])
+def new_checkout():
+    return render_template('checkouts/new.html')
+
+
+@app.route('/checkouts/<tx_id>', methods=['GET'])
+def show_checkout(tx_id):
+    url = CARD_API_URL + '/payments/{}'.format(tx_id)
+    resp = requests.get(url, auth=auth_pair)
+    payment = session["payment"]
+    result = {}
+    s = payment["Status"]
+    if s["ID"] == 11:  # Captured
+        result = {
+            'header': 'Sweet Success!',
+            'icon': 'success',
+            'message': ('Your test transaction has been successfully processed.'
+                        'See the API response and try again.')
+        }
+    else:
+        result = {
+            'header': 'Transaction Failed',
+            'icon': 'fail',
+            'message': ('Your test transaction has a status of {} ({}): {}. See'
+                        ' API response and try again.').format(s["ID"], s["Info"], s["Reasons"])
+        }
+
+    return render_template('checkouts/show.html', payment=payment, result=result)
+
+
 @app.route('/checkouts', methods=['POST'])
 def create_checkout():
     curr = request.form['currency']
@@ -134,78 +137,84 @@ def create_checkout():
             "MerchantTransactionID": str(uuid.uuid4()),
             "Amount": int(tx_amount),
             "Currency": curr,
-            "MethodID": 69,
             "ReturnURL": "https://smart2pay-demo-db2.herokuapp.com/redirect",
-            "TokenLifetime": 0,
-            "RedirectInIframe": 1,
             "Customer": {
                 "Email": "youremail@email.com"
-            }
+            },
+            "Card": {
+                "HolderName": request.form['card_holder'],
+                "Number": request.form['card_number'],
+                "ExpirationMonth": request.form['card_exp_month'],
+                "ExpirationYear": request.form['card_exp_year'],
+                "SecurityCode": request.form['card_cvv']
+            },
+            "Capture": True,
+            "GenerateCreditCardToken": True
         }
     }
-    result = requests.post(API_URL + '/payments', json=tx_data, auth=auth_pair)
-    print("RESP:", result)
-    print("RESP:", result.status_code)
+    result = requests.post(CARD_API_URL + '/payments', json=tx_data, auth=auth_pair)
     payment = result.json()["Payment"]
-    # import ipdb; ipdb.set_trace();
-    session["payment_id"] = payment["ID"]
-    session["tx_id"] = payment["MerchantTransactionID"]
-    return jsonify(payment)
-    # if result.is_success or result.transaction:
-    #     session["payment_method_token"] = result.transaction.credit_card_details.token
-    #     return redirect(url_for('show_checkout', transaction_id=result.transaction.id))
-    # else:
-    #     for x in result.errors.deep_errors:
-    #         flash('Error: %s: %s' % (x.code, x.message))
-    #     return redirect(url_for('new_checkout'))
+    s = payment["Status"]
+    session["payment"] = payment
+
+    if s["ID"] == 11:  # Captured
+        session["payment_method_token"] = payment["CreditCardToken"]
+        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
+    else:
+        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
 
 
-@app.route('/redirect', methods=['POST', 'GET'])
-def redirect_view():
-    status = request.args["data"]
-    merchant_tx_id = request.args["MerchantTransactionID"]
+@app.route('/checkouts/one_more', methods=['POST'])
+def create_checkout_more():
+    price = decimal.Decimal(request.form["price"])
 
-    return redirect(url_for('show_checkout', status=status, tx_id=merchant_tx_id))
+    tx_amount = price * 100
+    tx_data = {
+        "Payment": {
+            "MerchantTransactionID": str(uuid.uuid4()),
+            "Amount": int(tx_amount),
+            "Currency": "USD",
+            "ReturnURL": "https://smart2pay-demo-db2.herokuapp.com/redirect",
+            "Customer": {
+                "Email": "youremail@email.com"
+            },
+            "CreditCardToken": {
+              "Value": session["payment_method_token"]["Value"],
+            },      
+            "Capture": True,
+            "Retry": True,
+            "GenerateCreditCardToken": True
+        }
+    }
 
+    result = requests.post(CARD_API_URL + '/payments', json=tx_data, auth=auth_pair)
+    payment = result.json()["Payment"]
+    s = payment["Status"]
 
-# @app.route('/checkouts/one_more', methods=['POST'])
-# def create_checkout_more():
-#     price = request.form['price']
-#     result = braintree.Transaction.sale({
-#         'amount': price,
-#         'payment_method_token': session["payment_method_token"],
-#         'options': {
-#             "submit_for_settlement": True,
-#         },
-#     })
-#     if result.is_success or result.transaction:
-#         # session["payment_method_token"] = result.transaction.credit_card_details.token
-#         return redirect(url_for('show_checkout', transaction_id=result.transaction.id))
-#     else:
-#         for x in result.errors.deep_errors:
-#             flash('Error: %s: %s' % (x.code, x.message))
-#         return redirect(url_for('new_checkout'))
+    session["payment"] = payment
+    if s["ID"] == 11:  # Captured
+        session["payment_method_token"] = payment["CreditCardToken"]
+        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
+    else:
+        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
 
 
 @app.route('/refund/partial', methods=['POST'])
 def refund_partial():
-    # result = braintree.Transaction.refund(request.form["tx_id"])
     data = {
         "Refund": {
             "MerchantTransactionID": request.form["tx_id"],
             "Amount": int(decimal.Decimal(request.form["amount"])) * 100
         }
     }
-    url = API_URL + '/payments/{}/refunds'.format(request.form["payment_id"])
+    url = CARD_API_URL + '/payments/{}/refunds'.format(request.form["payment_id"])
     result = requests.post(url, json=data, auth=auth_pair)
-    # refund = result.json()["Refund"]
     return jsonify(result.json())
 
 
 @app.route('/refund', methods=['POST'])
 def refund():
-    # result = braintree.Transaction.refund(request.form["tx_id"])
-    url = API_URL + '/payments/{}'.format(request.form["payment_id"])
+    url = CARD_API_URL + '/payments/{}'.format(request.form["payment_id"])
     resp = requests.get(url, auth=auth_pair)
     payment = resp.json()["Payment"]
     data = {
@@ -214,28 +223,9 @@ def refund():
             "Amount": payment["Amount"]
         }
     }
-    url = API_URL + '/payments/{}/refunds'.format(request.form["payment_id"])
+    url = CARD_API_URL + '/payments/{}/refunds'.format(request.form["payment_id"])
     result = requests.post(url, json=data, auth=auth_pair)
-    # refund = result.json()["Refund"]
     return jsonify(result.json())
-    # result = {}
-    # if transaction.status in TRANSACTION_SUCCESS_STATUSES:
-    #     result = {
-    #         'header': 'Sweet Success!',
-    #         'icon': 'success',
-    #         'message': ('Your test transaction has been successfully processed.'
-    #                     'See the Braintree API response and try again.')
-    #     }
-    # else:
-    #     result = {
-    #         'header': 'Transaction Failed',
-    #         'icon': 'fail',
-    #         'message': ('Your test transaction has a status of {}. See the Braintree'
-    #                     ' API response and try again.').format(transaction.status)
-    #     }
-
-    # return render_template('checkouts/show.html', transaction=transaction,
-    # result=result)
 
 
 if __name__ == '__main__':
