@@ -161,7 +161,7 @@ def create_checkout():
         session["payment_method_token"] = payment["CreditCardToken"]
         return redirect(url_for('show_checkout', tx_id=payment["ID"]))
     else:
-        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
+        return redirect(url_for('show_checkout', tx_id=payment["ID"] or 'xxx'))
 
 
 @app.route('/checkouts/one_more', methods=['POST'])
@@ -196,7 +196,7 @@ def create_checkout_more():
         session["payment_method_token"] = payment["CreditCardToken"]
         return redirect(url_for('show_checkout', tx_id=payment["ID"]))
     else:
-        return redirect(url_for('show_checkout', tx_id=payment["ID"]))
+        return redirect(url_for('show_checkout', tx_id=payment["ID"] or "xxx"))
 
 
 @app.route('/refund/partial', methods=['POST'])
